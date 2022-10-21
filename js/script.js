@@ -281,33 +281,51 @@ window.addEventListener('DOMContentLoaded', () => {
             `;
             form.insertAdjacentElement('afterend', statusMessage);//расположит спиннер под формой
 
-            const request = new XMLHttpRequest();
-            request.open('POST', 'server.php');
+            // const request = new XMLHttpRequest();
+            // request.open('POST', 'server.php');
             //заголовок при XMLHttpRequest и форм даейт - не нужно устанавливать(устанавливается автоматически)
-            request.setRequestHeader('Content-type', 'application/json');
-            const formData = new FormData(form);
+            //request.setRequestHeader('Content-type', 'application/json');
+            //переделываем на fetch
+            
+            
+            const formData = new FormData(form);//собираем данные из формы, а дальше с помощью фетча их все отправим на сервер
 
             const object = {};
             formData.forEach(function (value, key) {
                 object[key] = value;
             });
 
-            const json = JSON.stringify(object);
-
-            request.send(json);
-
+            //request.send(json);
             //request.send(formData);
 
-            request.addEventListener('load', () => {
-                if (request.status === 200) {
-                    console.log(request.response);
-                    showThanksModal(message.success);
-                    form.reset(); //очистка формы после успешной отправки
-                    statusMessage.remove();
-                } else {
-                    showThanksModal(message.failure);
-                }
+            fetch('server.php', {
+                method: "POST",
+                headers: {
+                    'Content-type': 'application/json'
+                },
+                body: JSON.stringify(object)
+            })
+            .then(data => data.text())
+            .then(data => {
+                console.log(data); //data - это данные, которые возвращаются из промиса(те, которые вернул сервер)
+                showThanksModal(message.success); //выводим сообщение
+                statusMessage.remove();  //удаляем всё
+            }).catch(() => {  //в случае ошибки
+                showThanksModal(message.failure); //сообщение об ошибке
+            }).finally(() => {
+                form.reset();             //очищаем форму
             });
+
+            // request.addEventListener('load', () => {
+            //     if (request.status === 200) {
+            //         console.log(request.response);
+            //         showThanksModal(message.success);
+            //         form.reset(); //очистка формы после успешной отправки
+            //         statusMessage.remove();
+            //     } else {
+            //         showThanksModal(message.failure);
+            //     }
+            // });
         });
     }
 
@@ -334,4 +352,25 @@ window.addEventListener('DOMContentLoaded', () => {
             closeModal();
         }, 4000);
     }
+
+
+    //FetchAPI
+    //API - готовые методы и свойства для работы одной программы с другой
+    //пример работы с https://jsonplaceholder.typicode.com/ - даёт фейковый JSON API
+    //fetch - использует промисы, возвращает промис, от того далее можно обработать, например через then
+    // fetch('https://jsonplaceholder.typicode.com/todos/1')
+    //     .then(response => response.json())  //встроеный метод в фетч, который данные json превратить в обычный объект JS
+    //     //команда выше тоже вернёт промис по итогу
+    //     .then(json => console.log(json));
+
+    //фетч с изменением метода на пост
+    // fetch('https://jsonplaceholder.typicode.com/posts', {
+    //     method: "POST",
+    //     body: JSON.stringify({name: 'Alex'}),
+    //     headers: {
+    //         'Content-type': 'application/json'
+    //     }
+    // })
+    //     .then(response => response.json())
+    //     .then(json => console.log(json));
 });
