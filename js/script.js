@@ -119,7 +119,6 @@ window.addEventListener('DOMContentLoaded', () => {
         modal = document.querySelector('.modal');
         //обработчик событий не повесится на элементы созданные динамически
         //нужно использовать делегирование событий
-        /* modalCloseBtn = document.querySelector('[data-close]'); */
 
     function openModal() {
         modal.classList.add('show');
@@ -142,9 +141,6 @@ window.addEventListener('DOMContentLoaded', () => {
         //modal.classList.toggle('show');
         document.body.style.overflow = '';
     }
-
-    //это заменим
-    //modalCloseBtn.addEventListener('click', closeModal);
 
     //реализация закрытия модуля, при клике вне модуля
     modal.addEventListener('click', (e) => {
@@ -205,8 +201,8 @@ window.addEventListener('DOMContentLoaded', () => {
             const element = document.createElement('div');
 
             if (this.classes.length === 0) {
-                this.element = 'menu_item';
-                element.classList.add();
+                this.classes = 'menu__item';
+                element.classList.add(this.classes);
             } else {
                 this.classes.forEach(className => element.classList.add(className));
             }
@@ -225,7 +221,64 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    new MenuCard(
+    //функцию пишем для получения данных с сервера
+    const getResource = async (url) => { 
+        const res = await fetch(url);
+
+        if (!res.ok) {
+            //в случае ошибки выкидываем в консоль объект Ошибки
+            throw new Error(`Could not fetch ${url}, status: ${res.status}`);
+        }
+
+        return await res.json(); 
+    };
+
+    // getResource('http://localhost:3000/menu')
+    //     .then(data => {
+    //         //берём нашу базу данных, через форич пробегаем по объектам
+    //         //используем деструктуризацию объекта, чтоб не обращаться каждый раз к obj(obj.img, obj.altimg и т.д.)
+    //         //в конце создаём карточки продуктов, через уже написанную фукцию рендер
+    //         data.forEach(({img, altimg, title, descr, price}) => {
+    //             new MenuCard(img, altimg, title, descr, price, ".menu .container").render();
+    //         });
+    //     });
+
+    //второй вариант формирования вёрстки "на лету" через функцию, а не классы
+    getResource('http://localhost:3000/menu')
+        .then(data => createCard(data));
+
+    //практика с библиоткеой axios - она, в отличие от Fetch, более подробно возвращает данные
+    //
+    // axios.get('http://localhost:3000/menu')
+    //     .then(data => {
+    //         //в data - лежит ответ от сервера
+    //         data.data.forEach(({img, altimg, title, descr, price}) => {
+    //             new MenuCard(img, altimg, title, descr, price, ".menu .container").render();
+    //         });
+    // });    
+
+    function createCard(data) {
+        data.forEach(({img, altimg, title, descr, price}) => {
+            const element = document.createElement('div');
+            price = price * 27; //перевод в курс
+            element.classList.add('menu__item');
+
+            element.innerHTML = `
+                <img src=${img} alt=${altimg}>
+                <h3 class="menu__item-subtitle">${title}</h3>
+                <div class="menu__item-descr">${descr}</div>
+                <div class="menu__item-divider"></div>
+                <div class="menu__item-price">
+                    <div class="menu__item-cost">Цена:</div>
+                    <div class="menu__item-total"><span>${price}</span> грн/день</div>
+                </div>
+            `;
+
+            document.querySelector('.menu .container').append(element);
+        });
+    }    
+
+    /*new MenuCard(
         "img/tabs/vegy.jpg",
         "vegy",
         'Меню "Фитнес"',
@@ -253,7 +306,7 @@ window.addEventListener('DOMContentLoaded', () => {
         21,
         ".menu .container",
         'menu__item'
-    ).render();
+    ).render();*/
 
     // FORMS
 
@@ -266,10 +319,24 @@ window.addEventListener('DOMContentLoaded', () => {
     };
 
     forms.forEach(item => {
-        postData(item);
+        bindData(item);
     });
+    
+    //отправляем данные на сервер
+    const postData = async (url, data) => {  //asyns - означает, что код будет асинхронным
+        const res = await fetch(url, {  //await - ставится там, где нужно ждать ответа
+            method: "POST",
+            headers: {
+                'Content-type': 'application/json'
+            },
+            body: data
+        });
+        //тут так же нужен await, так как неизвестно сколько будет ответ в предыдущем коде, а значит
+        //не известно - когда res получит значение промиса(а без него у res нет метода json)
+        return await res.json(); //если без async/await это делать, то будет проблема с 
+    };
 
-    function postData(form) {
+    function bindData(form) {
         form.addEventListener('submit', (e) => {
             e.preventDefault(); //отменяем стандартное поведение, чтоб страница не перезагрузилась
 
@@ -280,32 +347,21 @@ window.addEventListener('DOMContentLoaded', () => {
                 margin: 0 auto;
             `;
             form.insertAdjacentElement('afterend', statusMessage);//расположит спиннер под формой
-
-            // const request = new XMLHttpRequest();
-            // request.open('POST', 'server.php');
-            //заголовок при XMLHttpRequest и форм даейт - не нужно устанавливать(устанавливается автоматически)
-            //request.setRequestHeader('Content-type', 'application/json');
-            //переделываем на fetch
             
             
             const formData = new FormData(form);//собираем данные из формы, а дальше с помощью фетча их все отправим на сервер
+            //formData - собирает все данные с формы
+            //дальше мы привращаем её в массив массивов formdData.entries()
+            //дальше мы их превращаем в классический объект
+            //дальше мы их превращаем в JSON
+            const json = JSON.stringify(Object.fromEntries(formData.entries()));
 
-            const object = {};
-            formData.forEach(function (value, key) {
-                object[key] = value;
-            });
+            const obj = {a: 23, b: 50};
+            console.log(Object.entries(obj)); 
+            //превращает объект в массив массивов
+            //обратно можно через Object.fromEntries
 
-            //request.send(json);
-            //request.send(formData);
-
-            fetch('server.php', {
-                method: "POST",
-                headers: {
-                    'Content-type': 'application/json'
-                },
-                body: JSON.stringify(object)
-            })
-            .then(data => data.text())
+            postData('http://localhost:3000/requests', json)
             .then(data => {
                 console.log(data); //data - это данные, которые возвращаются из промиса(те, которые вернул сервер)
                 showThanksModal(message.success); //выводим сообщение
@@ -315,17 +371,6 @@ window.addEventListener('DOMContentLoaded', () => {
             }).finally(() => {
                 form.reset();             //очищаем форму
             });
-
-            // request.addEventListener('load', () => {
-            //     if (request.status === 200) {
-            //         console.log(request.response);
-            //         showThanksModal(message.success);
-            //         form.reset(); //очистка формы после успешной отправки
-            //         statusMessage.remove();
-            //     } else {
-            //         showThanksModal(message.failure);
-            //     }
-            // });
         });
     }
 
@@ -373,4 +418,136 @@ window.addEventListener('DOMContentLoaded', () => {
     // })
     //     .then(response => response.json())
     //     .then(json => console.log(json));
+
+
+    fetch('db.json')  //подключаемся к нашей базе данных
+        .then(data => data.json())  //переводим json формат в обычный объект JS
+        .then(res => console.log(res));  //выводим в консоль
+
+    
+    
+    
+    // Slider   
+
+    const slides = document.querySelectorAll('.offer__slide'),
+          prev = document.querySelector('.offer__slider-prev'),
+          next = document.querySelector('.offer__slider-next'),
+          total = document.querySelector('#total'),
+          current = document.querySelector('#current'),
+          slidesWrapper = document.querySelector('.offer__slider-wrapper'),
+          slidesField = document.querySelector('.offer__slider-inner'),
+          //получаем ширину через complited style - итоговые стили на странице
+          width = window.getComputedStyle(slidesWrapper).width;
+
+    let slideIndex = 1;
+    let offset = 0; //отступ
+    
+    if (slides.length < 10) {
+        total.textContent = `0${slides.length}`;
+        current.textContent = `0${slideIndex}`;
+    } else {
+        total.textContent = slides.length;
+        current.textContent = slideIndex;
+    }
+
+    //слайдер карусель
+
+    //задаём ширину обёртки карусели
+    slidesField.style.width = 100 * slides.length + '%'; 
+    slidesField.style.display = 'flex';
+    slidesField.style.transition = '0.5s all';
+
+    slidesWrapper.style.overflow = 'hidden';
+
+    slides.forEach(slide => {
+        slide.style.width = width;
+    });
+
+    next.addEventListener('click', () => {
+        if (offset == +width.slice(0, width.length - 2) * (slides.length - 1)){
+            offset = 0;
+        } else {
+            offset += +width.slice(0, width.length - 2);
+        }
+
+        slidesField.style.transform = `translateX(-${offset}px)`;
+
+        if (slideIndex == slides.length) {
+            slideIndex = 1;
+        } else {
+            slideIndex++;
+        }
+    
+        if (slides.length < 10) {
+            current.textContent = `0${slideIndex}`;
+        } else {
+            current.textContent = slideIndex;
+        }
+    });
+
+    prev.addEventListener('click', () => {
+        if (offset == 0){
+            offset = +width.slice(0, width.length - 2) * (slides.length - 1);
+        } else {
+            offset -= +width.slice(0, width.length - 2);
+        }
+
+        slidesField.style.transform = `translateX(-${offset}px)`;
+
+        if (slideIndex == 1) {
+            slideIndex = slides.length;
+        } else {
+            slideIndex--;
+        }
+    
+        if (slides.length < 10) {
+            current.textContent = `0${slideIndex}`;
+        } else {
+            current.textContent = slideIndex;
+        }
+    });
+
+
+    //простой вариант слайдера - с заменой активного изображения
+    /* showSlides(slideIndex);
+
+    if (slides.length < 10) {
+        total.textContent = `0${slides.length}`;
+    } else {
+        total.textContent = slides.length;
+    }
+
+    function showSlides(n) {
+        if (n > slides.length) {
+            slideIndex = 1;
+        }
+
+        if (n < 1) {
+            slideIndex = slides.length;
+        }
+
+        slides.forEach(item => item.style.display = 'none');
+
+        slides[slideIndex - 1].style.display = 'block';
+
+        if (slides.length < 10) {
+            current.textContent = `0${slideIndex}`;
+        } else {
+            current.textContent = slideIndex;
+        }
+    }
+
+    function plusSlides(n) {
+        showSlides(slideIndex += n);
+    }
+
+    prev.addEventListener('click', () => {
+        plusSlides(-1);
+    });
+
+    next.addEventListener('click', () => {
+        plusSlides(1);
+    }); */
+
+    
 });
