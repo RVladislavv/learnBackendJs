@@ -276,6 +276,17 @@
     </div>
     <!--подключение библиотеки axions-->
     <!-- <script src="https://cdn.jsdelivr.net/npm/axios@1.1.2/dist/axios.min.js"></script> -->
-    <script src="./js/script.js"></script>
+    <!-- старое подключение одного файла со всем кодом
+        <script src="./js/script.js"></script> 
+    ниже подключаем файл, который выдал вебпак
+    -->
+    <!-- 
+        как простая альтератива(для простых скриптов) - можно использовать модульность
+        использовать это после настроенных экспортов и импортов
+        так же придётся в имортах писать полностью название файла './main.js'
+        <script type='module' src="js/main.js"></script> //модуль
+        <script type='module' src="js/script.js"></script> //основной файл в конце
+     -->
+    <script src="js/bundle.js"></script>
 </body>
 </html>
